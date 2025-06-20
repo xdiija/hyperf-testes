@@ -5,18 +5,10 @@ declare(strict_types=1);
 use App\DB\CustomPgSQLPool;
 use Hyperf\Support;
 
-/**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
- */
 return [
     'default' => [
         'driver' => CustomPgSQLPool::class,
-        'host' => Support\env("ACTIVE_CRON") ? Support\env('DB_HOST') : Support\env('DB_REPLICA2_HOST'),
+        'host' => Support\env('DB_HOST'),
         'database' => Support\env('DB_DATABASE'),
         'port' => Support\env('DB_PORT', 5432),
         'username' => Support\env('DB_USERNAME'),

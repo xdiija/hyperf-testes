@@ -16,7 +16,12 @@ use Firebase\JWT\Key;
 use Firebase\JWT\JWT as FirebaseJWT;
 use Hyperf\Config\ConfigFactory;
 use Hyperf\Context\ApplicationContext;
-
+use Firebase\JWT\SignatureInvalidException;
+use Firebase\JWT\BeforeValidException;
+use Firebase\JWT\ExpiredException;
+use InvalidArgumentException;
+use UnexpectedValueException;
+use DomainException;
 class Jwt
 {
     /**
@@ -46,11 +51,37 @@ class Jwt
 
     public function encode(array $data): string
     {  
-        $data['validade'] = Carbon::now()->addMinutes(15)->toDateTimeString();
+        $data['validade'] = Carbon::now()->addDays(1)->toDateTimeString();
         return FirebaseJWT::encode(
             $data,
             $this->jwtSecret,
             self::ALG
         );
+    }
+
+    public function validate(string $token): array
+    {
+        try {
+            $decoded = $this->decode($token);
+
+            if (!isset($decoded->validade) || Carbon::parse($decoded->validade)->isPast()) {
+                throw new \RuntimeException('Token has expired');
+            }
+
+            return (array) $decoded;
+            
+        } catch (InvalidArgumentException $e) {
+            throw new \RuntimeException('Invalid token provided');
+        } catch (DomainException $e) {
+            throw new \RuntimeException('Invalid token algorithm');
+        } catch (SignatureInvalidException $e) {
+            throw new \RuntimeException('Token signature verification failed');
+        } catch (BeforeValidException $e) {
+            throw new \RuntimeException('Token not yet valid');
+        } catch (ExpiredException $e) {
+            throw new \RuntimeException('Token has expired');
+        } catch (UnexpectedValueException $e) {
+            throw new \RuntimeException('Malformed token');
+        }
     }
 }

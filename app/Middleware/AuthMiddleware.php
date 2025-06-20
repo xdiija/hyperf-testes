@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Middleware;
 
 use App\Helper\Jwt;
-use App\Service\UsuarioAppService;
+use App\Service\UsuarioService;
 use Carbon\Carbon;
 use Hyperf\Config\ConfigFactory;
 use Hyperf\Context\Context;
@@ -21,39 +21,28 @@ use Hyperf\Contract\StdoutLoggerInterface;
 
 class AuthMiddleware implements MiddlewareInterface
 {
-    /**
-     * @var ContainerInterface
-     */
     protected ContainerInterface $container;
-
-    /**
-     * @var RequestInterface
-     */
     protected RequestInterface $request;
-
-    /**
-     * @var HttpResponse
-     */
     protected HttpResponse $response;
     public const alg = 'HS256';
     private string $jwtSecret;
     protected $logger;
     protected $jwt;
 
-    private UsuarioAppService $usuarioAppService;
+    private UsuarioService $usuarioService;
 
     public function __construct(
         ContainerInterface $container,
         HttpResponse $response,
         RequestInterface $request,
         StdoutLoggerInterface $logger,
-        UsuarioAppService $usuarioAppService,
+        UsuarioService $usuarioService,
         Jwt $jwt
     ) {
         $this->container = $container;
         $this->response = $response;
         $this->request = $request;
-        $this->usuarioAppService = $usuarioAppService;
+        $this->usuarioService = $usuarioService;
         $config = new ConfigFactory;
         $config = $config(ApplicationContext::getContainer());
         $this->jwtSecret = $config->get("jwt.default.secret");
@@ -71,8 +60,6 @@ class AuthMiddleware implements MiddlewareInterface
         );
 
         if ($apiToken == '') {
-            // The token header was empty, authentication fails with HTTP Status
-            // Code 401 "Unauthorized"
             $data = [
                 'code' => 'AUTH_MISSING_CREDENTIALS',
                 'message' => 'missing token'
@@ -80,10 +67,6 @@ class AuthMiddleware implements MiddlewareInterface
             return $this->response->json($data);
         }
 
-        // the request object is immutable, so we clone it , add the desired attributes and
-        // then return it to be handled by the controller
-        // To retrieve the desired data, just do a request->getAttribute('attribute') at the controller
-        // Checking JWT
         $credentials = $this->getCredentials($apiToken);
         if (!$credentials['pessoa']) {
             return $this->response->json($credentials['error']);
@@ -141,7 +124,7 @@ class AuthMiddleware implements MiddlewareInterface
             ];
             return $response;
         }
-        $response['pessoa'] = $this->usuarioAppService->getUsuarioApp($decodedJwt->idUsuarioApp);
+        $response['pessoa'] = $this->usuarioService->getById((int) $decodedJwt->idUsuario);
         return $response;
     }
 }

@@ -1,9 +1,33 @@
 services:
+  postgres:
+      image: postgres:15-alpine
+      container_name: postgres
+      environment:
+        POSTGRES_USER: your_username
+        POSTGRES_PASSWORD: your_password
+        POSTGRES_DB: your_database
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      ports:
+        - "5432:5432"
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U your_username -d your_database"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+
   redis-master:
     image: redis:7.0.7
     container_name: redis-master
     ports:
-    - "6379:6379"
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      - REDIS_REPLICATION_MODE=master
 
   redis-replica:
     image: redis:7.0.7
@@ -11,8 +35,16 @@ services:
     ports:
       - "6380:6379"
     depends_on:
-      - redis-master
-    command: redis-server --slaveof redis-master 6379
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: redis-server --replicaof redis-master 6379
+    environment:
+      - REDIS_REPLICATION_MODE=replica
 
   composer:
     image: composer:latest
@@ -36,17 +68,26 @@ services:
       - ./:/opt/www
     ports:
       - "9501:9501"
+      - "9502:9502"
+      - "8080:8080" 
     env_file:
       - ./.env
     environment:
       - REDIS_RW_HOST=redis-master
       - REDIS_RR_HOST=redis-replica
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=your_username
+      - DB_PASSWORD=your_password
+      - DB_DATABASE=your_database
 
     links:
       - redis-master
       - redis-replica
+      - postgres
     depends_on:
       - composer
+      - postgres
 
   console:
     container_name: 'php-service-console'
@@ -62,3 +103,5 @@ services:
       - ./.env
     profiles:
       - console
+volumes:
+  postgres_data:

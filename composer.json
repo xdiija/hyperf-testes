@@ -13,8 +13,10 @@
     "license": "Apache-2.0",
     "require": {
         "php": ">=8.2",
+        "ext-pcntl": "*",
         "aws/aws-sdk-php": "^3.283",
         "firebase/php-jwt": "~6.0",
+        "google/apiclient": "^2.18",
         "hyperf/amqp": "~3.1.0",
         "hyperf/async-queue": "~3.1.0",
         "hyperf/cache": "~3.1.0",
@@ -34,7 +36,8 @@
         "hyperf/model-cache": "~3.1.0",
         "hyperf/process": "~3.1.0",
         "hyperf/redis": "~3.1.0",
-        "ext-pcntl": "*"
+        "hyperf/websocket-server": "^3.1",
+        "league/oauth2-client": "^2.8"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",

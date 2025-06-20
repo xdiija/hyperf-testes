@@ -10,6 +10,8 @@ RUN set -ex \
     && php -m \
     && ln -s /usr/bin/phpize8 /usr/local/bin/phpize \
     && ln -s /usr/bin/php-config8 /usr/local/bin/php-config
+    
+RUN apk add --no-cache php82-pdo_pgsql php82-pgsql
 
 ## Configure PHP
 RUN { \
@@ -31,6 +33,11 @@ WORKDIR /opt/www
 COPY ./composer.* /opt/www/
 ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install --no-dev -o --ignore-platform-reqs
+
+# Install WebSocket package along with other dependencies
+RUN composer require hyperf/websocket-server \
+    && composer install --no-dev -o --ignore-platform-reqs
+
 ADD . /opt/www
 
 ## Dev image
@@ -43,5 +50,6 @@ CMD [ "server:watch" ]
 FROM base as prod
 EXPOSE 8080
 EXPOSE 9501
+EXPOSE 9502
 ENTRYPOINT ["php", "/opt/www/bin/hyperf.php"]
 CMD [ "start" ]

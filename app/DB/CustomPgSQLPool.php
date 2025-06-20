@@ -14,5 +14,6 @@ class CustomPgSQLPool extends PgSQLPool
             return new Swoole4PgSQLConnection($this->container, $this, $this->config);
         }
         return new CustomPgSQLConnection($this->container, $this, $this->config);
+        
     }
 }

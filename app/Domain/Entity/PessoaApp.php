@@ -4,20 +4,20 @@ namespace App\Domain\Entity;
 
 class PessoaApp
 {
-    public int $idUsuarioApp;
+    public int $idUsuario;
     public int $idUsuarioSus;
     public int $idPessoa;
     public string $nome;
     public ?string $matricula;
-    public function setIdUsuarioApp(int $idUsuarioApp)
+    public function setIdUsuario(int $idUsuario)
     {
-        $this->idUsuarioApp = $idUsuarioApp;
+        $this->idUsuario = $idUsuario;
         return $this;
     }
 
-    public function getIdUsuarioApp()
+    public function getIdUsuario()
     {
-        return $this->idUsuarioApp;
+        return $this->idUsuario;
     }
 
     public function setIdPessoa(int $idPessoa)
@@ -67,7 +67,7 @@ class PessoaApp
     public static function setFromPessoa(PessoaApp $pessoa): self
     {
         $pessoaInterface = new self();
-        $pessoaInterface->setIdUsuarioApp($pessoa->getIdUsuarioApp());
+        $pessoaInterface->setIdUsuario($pessoa->getIdUsuario());
         $pessoaInterface->setNome($pessoa->getNome());
         $pessoaInterface->setIdPessoa($pessoa->getIdPessoa());
         $pessoaInterface->setMatricula($pessoa->getMatricula());

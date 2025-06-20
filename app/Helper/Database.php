@@ -9,56 +9,109 @@ use Hyperf\DB\DB;
 
 class Database
 {
-
-    public function run(string $query){
-        return $this->query($query);
-    }
-
     /**
+     * Executa uma query que busca por multiplos resultados.
      * @throws QueryException
      */
-    public function query(string $query){
+    public function query(string $query, array $bindings = [])
+    {
         try {
-            return Db::query($query);
+            return Db::query($query, $bindings);
         } catch (\PDOException $exception) {
             throw QueryException::failed($exception->getMessage(), $query, $exception);
         }
     }
 
-    public function insert(string $table, array $values){
-
-        // CHECK IF IS A MULTI INSERT
-        if(!empty($values[0])){
-            $lines = [];
-            foreach ($values as $line){
-                $result = $this->insertFormat($line);
-                $lines[] = $result["fieldValues"];
-            }
-            $valuesToInsert = implode(",", $lines);
-        }else{
-            $result = $this->insertFormat($values);
-            $valuesToInsert = $result["fieldValues"];
+    /**
+     * Executa uma query que busca por um único resultado.
+     * @throws QueryException
+     */
+    public function fetch(string $query, array $bindings = [])
+    {
+        try {
+            return Db::fetch($query, $bindings);
+        } catch (\PDOException $exception) {
+            throw QueryException::failed($exception->getMessage(), $query, $exception);
         }
-
-        $columns = ' (' . implode(", ", $result["fields"]) .  ') VALUES ';
-        $query = 'INSERT INTO ' . $table . $columns . $valuesToInsert;
-
-        $this->query($query);
-
-        return true;
     }
 
-    private function insertFormat(array $values): array
+    /**
+     * Executa uma query que retorna a quantidade de registros afetados.
+     * @throws QueryException
+     */
+    public function execute(string $sql): int
     {
-        $fields = [];
-        $fieldValues = [];
+        try {
+            return DB::execute($sql);
+        } catch (\PDOException $exception) {
+            throw QueryException::failed($exception->getMessage(), $sql, $exception);
+        }
+    }
 
-        foreach ($values as $key => $val) {
-            $fields[] = $key;
-            $fieldValues[] = is_string($val) ? "'" . str_replace("'", "\"", $val) . "'" : $val;
+   /**
+     * Inserts data into a table using parameter binding.
+     * @throws QueryException
+     */
+    public function insert(string $table, array $values)
+    {
+        $isMultiInsert = !empty($values[0]) && is_array($values[0]);
+        
+        if ($isMultiInsert) {
+            // Handle multiple inserts
+            return $this->bulkInsert($table, $values);
         }
 
-        return ["fields" => $fields, "fieldValues" => '(' . implode(", ", $fieldValues) . ')'];
+        // Handle single insert
+        $columns = implode(', ', array_keys($values));
+        $placeholders = implode(', ', array_fill(0, count($values), '?'));
+        
+        // Separate raw expressions from bindings
+        $bindings = [];
+        $placeholdersArray = [];
+        foreach ($values as $value) {
+            if ($value instanceof RawExpression) {
+                $placeholdersArray[] = (string)$value;
+            } else {
+                $placeholdersArray[] = '?';
+                $bindings[] = $value;
+            }
+        }
+        
+        $placeholders = implode(', ', $placeholdersArray);
+        $query = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders}) RETURNING *";
+        
+        return $this->fetch($query, $bindings);
+    }
+
+    /**
+     * Handles bulk inserts with parameter binding.
+     */
+    private function bulkInsert(string $table, array $rows): array
+    {
+        if (empty($rows)) {
+            return [];
+        }
+
+        $columns = implode(', ', array_keys($rows[0]));
+        $placeholders = [];
+        $bindings = [];
+
+        foreach ($rows as $row) {
+            $rowPlaceholders = [];
+            foreach ($row as $value) {
+                if ($value instanceof RawExpression) {
+                    $rowPlaceholders[] = (string)$value;
+                } else {
+                    $rowPlaceholders[] = '?';
+                    $bindings[] = $value;
+                }
+            }
+            $placeholders[] = '(' . implode(', ', $rowPlaceholders) . ')';
+        }
+
+        $query = "INSERT INTO {$table} ({$columns}) VALUES " . implode(', ', $placeholders) . " RETURNING *";
+        
+        return $this->query($query, $bindings);
     }
 
 }

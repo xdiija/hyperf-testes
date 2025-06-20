@@ -1,29 +1,33 @@
 <?php
 
 declare(strict_types=1);
-/**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
- */
+
 use App\Middleware\AuthMiddleware;
-use App\Middleware\ProtectedMiddleware;
+use App\Middleware\CorsMiddleware;
 use Hyperf\HttpServer\Router\Router;
 
 Router::addRoute(['GET', 'POST', 'HEAD'], '/live', 'App\Controller\IndexController@index');
-Router::addRoute(['POST'], '/login', 'App\Controller\UsuarioAppController@login');
-Router::addRoute(['GET'], '/consulta', 'App\Controller\ConsultaController@getConsulta', ['middleware' => [AuthMiddleware::class, ProtectedMiddleware::class]]);
-Router::addRoute(['GET'], '/usuariosus/{idUsuarioSus}', 'App\Controller\UsuarioSusController@getUsuarioSus', ['middleware' => [AuthMiddleware::class]]);
-Router::addRoute(['POST'], '/usuarioapp', 'App\Controller\UsuarioAppController@returnUsuarioByCredentials', ['middleware' => [AuthMiddleware::class]]);
-Router::addRoute(['GET'], '/pessoa', 'App\Controller\PessoaController@getPessoa', ['middleware' => [AuthMiddleware::class, ProtectedMiddleware::class]]);
-Router::addRoute(['GET'], '/municipio', 'App\Controller\MunicipioController@getMunicipio', ['middleware' => [ProtectedMiddleware::class]]);
-Router::addRoute(['GET'], '/dependentes/{idUsuarioApp}', 'App\Controller\DependentesController@getDependentes', ['middleware' => [AuthMiddleware::class]]);
-Router::addRoute(['GET'], '/agenda/{idUsuarioSus}', 'App\Controller\AgendaController@getAgenda', ['middleware' => [AuthMiddleware::class]]);
-Router::addRoute(['GET'], '/unidade', 'App\Controller\UnidadeController@getUnidadeById', ['middleware' => [ProtectedMiddleware::class]]);
-Router::addRoute(['GET'], '/vacinas/{idPessoa}', 'App\Controller\VacinaController@getVacinas', ['middleware' => [AuthMiddleware::class]]);
+Router::addRoute(['POST'], '/login', 'App\Controller\UsuarioController@login');
+Router::addRoute(['GET'], '/consulta', 'App\Controller\ConsultaController@getConsulta', ['middleware' => [AuthMiddleware::class, CorsMiddleware::class]]);
+
+Router::addGroup('/auth', function () {
+    Router::get('/google', 'App\Controller\AuthController@redirectToGoogle');
+    Router::get('/google/callback', 'App\Controller\AuthController@handleGoogleCallback');
+    Router::get('/callback', 'App\Controller\AuthController@callbackPage');
+    Router::post('/validate-token', 'App\Controller\AuthController@validateToken');
+}, ['middleware' => [CorsMiddleware::class]]);
+
+
+Router::addGroup('/retro', function () {
+    Router::get('/list', 'App\Controller\RetroController@index');
+    Router::get('/{slug}', 'App\Controller\RetroController@show');
+    Router::post('/create', 'App\Controller\RetroController@store');
+    Router::get("/join/{slug}", 'App\Controller\RetroController@show');
+}, ['middleware' => [CorsMiddleware::class]]);
+
+Router::addServer('ws', function () {
+    Router::get('/retro', 'App\Controller\RetroWebSocketController');
+});
 
 Router::get('/favicon.ico', function () {
     return '';
